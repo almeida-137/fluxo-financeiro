@@ -11,9 +11,10 @@ import { useTransactions, Transaction } from '@/hooks/use-transactions';
 
 interface TransactionListProps {
   type: 'income' | 'expense';
+  onEdit?: (transaction: Transaction) => void;
 }
 
-export function TransactionList({ type }: TransactionListProps) {
+export function TransactionList({ type, onEdit }: TransactionListProps) {
   const { transactions, updateTransaction, deleteTransaction } = useTransactions(type);
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending'>('all');
 
@@ -154,6 +155,13 @@ export function TransactionList({ type }: TransactionListProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onEdit?.(transaction)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
