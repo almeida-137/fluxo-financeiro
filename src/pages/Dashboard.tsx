@@ -14,6 +14,7 @@ interface FinancialData {
   upcomingBillsAmount: number;
   upcomingBillsCount: number;
   preIncomeAmount: number;
+  preBalanceAmount: number;
 }
 
 export default function Dashboard() {
@@ -26,6 +27,7 @@ export default function Dashboard() {
     upcomingBillsAmount: 0,
     upcomingBillsCount: 0,
     preIncomeAmount: 0,
+    preBalanceAmount: 0,
   });
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(() => {
@@ -109,6 +111,7 @@ export default function Dashboard() {
         upcomingBillsAmount,
         upcomingBillsCount,
         preIncomeAmount,
+        preBalanceAmount: preIncomeAmount - upcomingBillsAmount,
       });
     } catch (error: any) {
       toast({
@@ -248,6 +251,20 @@ export default function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">
               Total a receber no mês
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Saldo Previsto</CardTitle>
+            <TrendingUp className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">
+              {formatCurrency(data.preBalanceAmount)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Saldo previsto para mês
             </p>
           </CardContent>
         </Card>
