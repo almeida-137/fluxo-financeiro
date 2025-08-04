@@ -13,6 +13,7 @@ interface FinancialData {
   balance: number;
   upcomingBillsAmount: number;
   upcomingBillsCount: number;
+  preIncomeAmount: number;
 }
 
 export default function Dashboard() {
@@ -24,6 +25,7 @@ export default function Dashboard() {
     balance: 0,
     upcomingBillsAmount: 0,
     upcomingBillsCount: 0,
+    preIncomeAmount: 0,
   });
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(() => {
@@ -54,6 +56,17 @@ export default function Dashboard() {
         .lt('transaction_date', endDate);
 
       if (incomeError) throw incomeError;
+      // Fetch income not received yet (is_paid: false)
+      const { data: pendingIncomeData, error: pendingIncomeError } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('user_id', user?.id)
+        .eq('type', 'income')
+        .eq('is_paid', false)
+        .gte('transaction_date', startDate)
+        .lt('transaction_date', endDate);
+
+      if (pendingIncomeError) throw pendingIncomeError;
 
       // Fetch selected period expenses
       const { data: expenseData, error: expenseError } = await supabase
@@ -71,7 +84,7 @@ export default function Dashboard() {
       const now = new Date();
       const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().slice(0, 10);
-      
+
       const { data: billsData, error: billsError } = await supabase
         .from('transactions')
         .select('amount, due_date, transaction_date')
@@ -87,6 +100,7 @@ export default function Dashboard() {
       const totalExpenses = expenseData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
       const upcomingBillsAmount = billsData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
       const upcomingBillsCount = billsData?.length || 0;
+      const preIncomeAmount = pendingIncomeData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
 
       setData({
         totalIncome,
@@ -94,6 +108,7 @@ export default function Dashboard() {
         balance: totalIncome - totalExpenses,
         upcomingBillsAmount,
         upcomingBillsCount,
+        preIncomeAmount,
       });
     } catch (error: any) {
       toast({
@@ -196,9 +211,8 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${
-              data.balance >= 0 ? 'text-success' : 'text-danger'
-            }`}>
+            <div className={`text-2xl font-bold ${data.balance >= 0 ? 'text-success' : 'text-danger'
+              }`}>
               {formatCurrency(data.balance)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -218,6 +232,22 @@ export default function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">
               {data.upcomingBillsCount} conta{data.upcomingBillsCount !== 1 ? 's' : ''} pendente{data.upcomingBillsCount !== 1 ? 's' : ''}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Prevista</CardTitle>
+            <Calendar className="h-4 w-4 text-warning" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-warning">
+              {formatCurrency(data.preIncomeAmount)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Total a receber no mês
             </p>
           </CardContent>
         </Card>
@@ -254,26 +284,25 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Taxa de Economia</span>
                 <span className="text-sm font-medium">
-                  {data.totalIncome > 0 
+                  {data.totalIncome > 0
                     ? `${((data.balance / data.totalIncome) * 100).toFixed(1)}%`
                     : '0%'
                   }
                 </span>
               </div>
               <div className="w-full bg-secondary rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full ${
-                    data.balance >= 0 ? 'bg-success' : 'bg-danger'
-                  }`}
-                  style={{ 
-                    width: data.totalIncome > 0 
+                <div
+                  className={`h-2 rounded-full ${data.balance >= 0 ? 'bg-success' : 'bg-danger'
+                    }`}
+                  style={{
+                    width: data.totalIncome > 0
                       ? `${Math.min(Math.abs((data.balance / data.totalIncome) * 100), 100)}%`
                       : '0%'
                   }}
                 ></div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {data.balance >= 0 
+                {data.balance >= 0
                   ? 'Você está poupando dinheiro este mês!'
                   : 'Cuidado! Suas despesas estão maiores que as receitas.'
                 }
