@@ -25,6 +25,7 @@ export default function UpdatePassword() {
         title: "Link inválido",
         description: "Este link de recuperação de senha é inválido ou expirou.",
         variant: "destructive",
+        duration: 2000,
       });
       navigate('/auth');
     }
@@ -47,6 +48,7 @@ export default function UpdatePassword() {
         title: "Senha muito curta",
         description: "A senha deve ter pelo menos 6 caracteres.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -63,11 +65,13 @@ export default function UpdatePassword() {
           title: "Erro ao atualizar senha",
           description: error.message,
           variant: "destructive",
+          duration: 2000,
         });
       } else {
         toast({
           title: "Senha atualizada!",
           description: "Sua senha foi alterada com sucesso. Você pode fazer login agora.",
+          duration: 2000,
         });
         
         // Redirecionar para a página de login após sucesso
@@ -80,6 +84,7 @@ export default function UpdatePassword() {
         title: "Erro inesperado",
         description: "Ocorreu um erro ao atualizar a senha. Tente novamente.",
         variant: "destructive",
+        duration: 2000,
       });
     } finally {
       setLoading(false);

@@ -61,11 +61,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: "Erro no cadastro",
           description: error.message,
           variant: "destructive",
+          duration: 2000,
         });
       } else {
         toast({
           title: "Cadastro realizado!",
           description: "Verifique seu email para confirmar a conta.",
+          duration: 2000,
         });
       }
 
@@ -75,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Erro no cadastro",
         description: "Ocorreu um erro inesperado.",
         variant: "destructive",
+        duration: 2000,
       });
       return { error };
     }
@@ -107,12 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: "Erro no login",
           description: errorMessage,
           variant: "destructive",
+          duration: 2000,
         });
       } else {
         console.log('Login realizado com sucesso:', data.user?.email);
         toast({
           title: "Login realizado!",
           description: "Bem-vindo de volta.",
+          duration: 2000,
         });
       }
 
@@ -123,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Erro no login",
         description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
+        duration: 2000,
       });
       return { error };
     }
@@ -136,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: "Erro no logout",
           description: error.message,
           variant: "destructive",
+          duration: 2000,
         });
       }
     } catch (error: any) {
@@ -143,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Erro no logout",
         description: "Ocorreu um erro inesperado.",
         variant: "destructive",
+        duration: 2000,
       });
     }
   };
@@ -160,11 +168,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: "Erro na recuperação",
           description: error.message,
           variant: "destructive",
+          duration: 2000,
         });
       } else {
         toast({
           title: "Email enviado!",
           description: "Verifique seu email para redefinir a senha.",
+          duration: 2000,
         });
       }
 
@@ -174,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Erro na recuperação",
         description: "Ocorreu um erro inesperado.",
         variant: "destructive",
+        duration: 2000,
       });
       return { error };
     }

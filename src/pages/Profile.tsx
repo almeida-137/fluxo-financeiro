@@ -62,12 +62,14 @@ export default function Profile() {
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram salvas com sucesso.",
+        duration: 2000,
       });
     } catch (error: any) {
       toast({
         title: "Erro ao atualizar perfil",
         description: error.message,
         variant: "destructive",
+        duration: 2000,
       });
     } finally {
       setLoading(false);
@@ -80,6 +82,7 @@ export default function Profile() {
         title: "Erro",
         description: "As senhas não coincidem.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -89,6 +92,7 @@ export default function Profile() {
         title: "Erro",
         description: "A nova senha deve ter pelo menos 6 caracteres.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -104,6 +108,7 @@ export default function Profile() {
       toast({
         title: "Senha atualizada",
         description: "Sua senha foi alterada com sucesso.",
+        duration: 2000,
       });
 
       setPasswords({
@@ -116,6 +121,7 @@ export default function Profile() {
         title: "Erro ao atualizar senha",
         description: error.message,
         variant: "destructive",
+        duration: 2000,
       });
     } finally {
       setLoading(false);

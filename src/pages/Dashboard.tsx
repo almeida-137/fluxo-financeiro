@@ -100,6 +100,7 @@ export default function Dashboard() {
         title: "Erro ao carregar dados",
         description: error.message,
         variant: "destructive",
+        duration: 2000,
       });
     } finally {
       setLoading(false);

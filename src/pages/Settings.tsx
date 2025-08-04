@@ -64,11 +64,13 @@ const Settings = () => {
         title: "Erro ao salvar preferências",
         description: error.message,
         variant: "destructive",
+        duration: 2000,
       });
     } else {
       toast({
         title: "Preferências salvas",
         description: "Suas configurações foram atualizadas com sucesso.",
+        duration: 2000,
       });
     }
   };
@@ -90,11 +92,13 @@ const Settings = () => {
         title: "Erro ao criar categoria",
         description: error.message,
         variant: "destructive",
+        duration: 2000,
       });
     } else {
       toast({
         title: "Categoria criada",
         description: "Nova categoria adicionada com sucesso.",
+        duration: 2000,
       });
       setNewCategory({ name: '', type: 'expense', color: '#6366F1' });
       setIsAddCategoryOpen(false);
@@ -118,11 +122,13 @@ const Settings = () => {
         title: "Erro ao atualizar categoria",
         description: error.message,
         variant: "destructive",
+        duration: 2000,
       });
     } else {
       toast({
         title: "Categoria atualizada",
         description: "Categoria editada com sucesso.",
+        duration: 2000,
       });
       setEditingCategory(null);
       setNewCategory({ name: '', type: 'expense', color: '#6366F1' });
@@ -140,11 +146,13 @@ const Settings = () => {
         title: "Erro ao excluir categoria",
         description: error.message,
         variant: "destructive",
+        duration: 2000,
       });
     } else {
       toast({
         title: "Categoria excluída",
         description: "Categoria removida com sucesso.",
+        duration: 2000,
       });
     }
   };
