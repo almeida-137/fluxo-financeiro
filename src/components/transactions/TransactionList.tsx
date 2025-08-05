@@ -12,17 +12,32 @@ import { useTransactions, Transaction } from '@/hooks/use-transactions';
 interface TransactionListProps {
   type: 'income' | 'expense';
   onEdit?: (transaction: Transaction) => void;
+  period: string;
 }
 
-export function TransactionList({ type, onEdit }: TransactionListProps) {
+export function TransactionList({ type, onEdit, period }: TransactionListProps) {
   const { transactions, updateTransaction, deleteTransaction } = useTransactions(type);
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending'>('all');
 
-  const filteredTransactions = transactions.filter((transaction) => {
+
+  const [year, month] = period.split('-').map(Number);
+
+  const filteredTransactions = transactions.filter(transaction => {
+    const transactionDate = new Date(transaction.transaction_date);
+
+    // Inclui transações do mês e ano selecionado
+    const isInSelectedMonth =
+      transactionDate.getFullYear() === year &&
+      transactionDate.getMonth() + 1 === month;
+
+    if (!isInSelectedMonth) return false;
+
     if (filter === 'paid') return transaction.is_paid;
     if (filter === 'pending') return !transaction.is_paid;
+
     return true;
   });
+
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -128,8 +143,8 @@ export function TransactionList({ type, onEdit }: TransactionListProps) {
                     <TableCell>
                       {transaction.categories && (
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
+                          <div
+                            className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: transaction.categories.color }}
                           />
                           {transaction.categories.name}
@@ -146,8 +161,8 @@ export function TransactionList({ type, onEdit }: TransactionListProps) {
                           onCheckedChange={() => handleTogglePaid(transaction)}
                         />
                         <span className="text-sm">
-                          {transaction.is_paid ? 
-                            (type === 'income' ? 'Recebido' : 'Pago') : 
+                          {transaction.is_paid ?
+                            (type === 'income' ? 'Recebido' : 'Pago') :
                             'Pendente'
                           }
                         </span>

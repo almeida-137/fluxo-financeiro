@@ -33,9 +33,9 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
   { href: '/income', label: 'Receitas', icon: TrendingUp },
   { href: '/expenses', label: 'Despesas', icon: TrendingDown },
-  { href: '/bills', label: 'Contas', icon: Calendar },
-  { href: '/reports', label: 'Relatórios', icon: BarChart3 },
-  { href: '/settings', label: 'Configurações', icon: Settings },
+  // { href: '/bills', label: 'Contas', icon: Calendar },
+  // { href: '/reports', label: 'Relatórios', icon: BarChart3 },
+  // { href: '/settings', label: 'Configurações', icon: Settings },
 ];
 
 export function Navbar() {

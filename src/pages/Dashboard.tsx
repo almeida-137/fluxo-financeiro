@@ -29,101 +29,177 @@ export default function Dashboard() {
     preIncomeAmount: 0,
     preBalanceAmount: 0,
   });
-  const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
 
-  useEffect(() => {
-    if (user) {
-      fetchFinancialData();
-    }
-  }, [user, selectedPeriod]);
+  // Separar loading de períodos e loading dos dados financeiros
+  const [loadingPeriods, setLoadingPeriods] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
 
-  const fetchFinancialData = async () => {
-    try {
-      const [year, month] = selectedPeriod.split('-');
-      const startDate = `${year}-${month}-01`;
-      const endDate = new Date(parseInt(year), parseInt(month), 1).toISOString().slice(0, 10);
+  const [periodOptions, setPeriodOptions] = useState<{ label: string; value: string }[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
 
-      // Fetch selected period income
-      const { data: incomeData, error: incomeError } = await supabase
-        .from('transactions')
-        .select('amount')
-        .eq('user_id', user?.id)
-        .eq('type', 'income')
-        .eq('is_paid', true)
-        .gte('transaction_date', startDate)
-        .lt('transaction_date', endDate);
+  // Função para buscar a última data de receita
+  const fetchLastIncomeDate = async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('transaction_date')
+      .eq('user_id', user?.id)
+      .eq('type', 'income')
+      .order('transaction_date', { ascending: false })
+      .limit(1)
+      .single();
 
-      if (incomeError) throw incomeError;
-      // Fetch income not received yet (is_paid: false)
-      const { data: pendingIncomeData, error: pendingIncomeError } = await supabase
-        .from('transactions')
-        .select('amount')
-        .eq('user_id', user?.id)
-        .eq('type', 'income')
-        .eq('is_paid', false)
-        .gte('transaction_date', startDate)
-        .lt('transaction_date', endDate);
-
-      if (pendingIncomeError) throw pendingIncomeError;
-
-      // Fetch selected period expenses
-      const { data: expenseData, error: expenseError } = await supabase
-        .from('transactions')
-        .select('amount')
-        .eq('user_id', user?.id)
-        .eq('type', 'expense')
-        .eq('is_paid', true)
-        .gte('transaction_date', startDate)
-        .lt('transaction_date', endDate);
-
-      if (expenseError) throw expenseError;
-
-      // Fetch upcoming bills - sum of unpaid expenses with due_date OR transaction_date in current month
-      const now = new Date();
-      const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().slice(0, 10);
-
-      const { data: billsData, error: billsError } = await supabase
-        .from('transactions')
-        .select('amount, due_date, transaction_date')
-        .eq('user_id', user?.id)
-        .eq('type', 'expense')
-        .eq('is_paid', false)
-        .or(`due_date.gte.${currentMonth}-01,and(due_date.is.null,transaction_date.gte.${currentMonth}-01)`)
-        .or(`due_date.lt.${nextMonth},and(due_date.is.null,transaction_date.lt.${nextMonth})`);
-
-      if (billsError) throw billsError;
-
-      const totalIncome = incomeData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-      const totalExpenses = expenseData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-      const upcomingBillsAmount = billsData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-      const upcomingBillsCount = billsData?.length || 0;
-      const preIncomeAmount = pendingIncomeData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-
-      setData({
-        totalIncome,
-        totalExpenses,
-        balance: totalIncome - totalExpenses,
-        upcomingBillsAmount,
-        upcomingBillsCount,
-        preIncomeAmount,
-        preBalanceAmount: preIncomeAmount - upcomingBillsAmount,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro ao carregar dados",
-        description: error.message,
-        variant: "destructive",
-        duration: 2000,
-      });
-    } finally {
-      setLoading(false);
-    }
+    if (error) throw error;
+    return data?.transaction_date; // ex: "2025-11-10"
   };
+
+  // Gera opções de meses entre duas datas
+  function generateMonthOptions(fromDate: Date, toDate: Date) {
+    const options = [];
+    const current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+    const end = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+
+    while (current <= end) {
+      const value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+      const label = current.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long' });
+      options.push({ value, label });
+      current.setMonth(current.getMonth() + 1);
+    }
+    return options;
+  }
+
+  // useEffect para carregar os períodos disponíveis
+  useEffect(() => {
+    if (!user) return;
+
+    async function loadPeriodOptions() {
+      setLoadingPeriods(true);
+      try {
+        const lastDateString = await fetchLastIncomeDate();
+        const now = new Date();
+
+        if (!lastDateString) {
+          // Se não tiver receita, só o mês atual
+          const currentMonthValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          setPeriodOptions([{ value: currentMonthValue, label: now.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long' }) }]);
+          setSelectedPeriod(currentMonthValue);
+        } else {
+          const lastDate = new Date(lastDateString);
+
+          // Gerar opções do mês atual até a última receita (inclusive)
+          const options = generateMonthOptions(now, lastDate);
+          setPeriodOptions(options);
+
+          const currentMonthValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          const hasCurrentMonth = options.some(option => option.value === currentMonthValue);
+          setSelectedPeriod(hasCurrentMonth ? currentMonthValue : options[options.length - 1].value);
+        }
+      } catch (error: any) {
+        toast({
+          title: 'Erro ao carregar períodos',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoadingPeriods(false);
+      }
+    }
+
+    loadPeriodOptions();
+  }, [user]);
+
+  // useEffect para carregar dados financeiros quando período estiver selecionado
+  useEffect(() => {
+    if (!user || !selectedPeriod) return;
+
+    async function fetchFinancialData() {
+      setLoadingData(true);
+      try {
+        const [year, month] = selectedPeriod.split('-');
+        const startDate = `${year}-${month}-01`;
+        const endDate = new Date(parseInt(year), parseInt(month), 1).toISOString().slice(0, 10);
+
+        // Fetch selected period income
+        const { data: incomeData, error: incomeError } = await supabase
+          .from('transactions')
+          .select('amount')
+          .eq('user_id', user.id)
+          .eq('type', 'income')
+          .eq('is_paid', true)
+          .gte('transaction_date', startDate)
+          .lt('transaction_date', endDate);
+
+        if (incomeError) throw incomeError;
+
+        // Fetch income not received yet (is_paid: false)
+        const { data: pendingIncomeData, error: pendingIncomeError } = await supabase
+          .from('transactions')
+          .select('amount')
+          .eq('user_id', user.id)
+          .eq('type', 'income')
+          .eq('is_paid', false)
+          .gte('transaction_date', startDate)
+          .lt('transaction_date', endDate);
+
+        if (pendingIncomeError) throw pendingIncomeError;
+
+
+        const nextMonthDate = new Date(parseInt(year), parseInt(month), 1);
+        nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+        const nextMonth = nextMonthDate.toISOString().slice(0, 10);
+        // Fetch selected period expenses
+        const { data: expenseData, error: expenseError } = await supabase
+          .from('transactions')
+          .select('amount')
+          .eq('user_id', user.id)
+          .eq('type', 'expense')
+          .eq('is_paid', true)
+          .gte('transaction_date', startDate)
+          .lt('transaction_date', endDate);
+
+        if (expenseError) throw expenseError;
+
+        // Fetch upcoming bills - sum of unpaid expenses with due_date OR transaction_date in current month
+
+        const { data: billsData, error: billsError } = await supabase
+          .from('transactions')
+          .select('amount, due_date, transaction_date')
+          .eq('user_id', user.id)
+          .eq('type', 'expense')
+          .eq('is_paid', false)
+          .or(`due_date.gte.${startDate},and(due_date.is.null,transaction_date.gte.${startDate})`)
+          .or(`due_date.lt.${nextMonth},and(due_date.is.null,transaction_date.lt.${nextMonth})`);
+
+        if (billsError) throw billsError;
+
+        const totalIncome = incomeData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+        const totalExpenses = expenseData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+        const upcomingBillsAmount = billsData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+        const upcomingBillsCount = billsData?.length || 0;
+        const preIncomeAmount = pendingIncomeData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+
+        setData({
+          totalIncome,
+          totalExpenses,
+          balance: totalIncome - totalExpenses,
+          upcomingBillsAmount,
+          upcomingBillsCount,
+          preIncomeAmount,
+          preBalanceAmount: preIncomeAmount - upcomingBillsAmount,
+        });
+      } catch (error: any) {
+        toast({
+          title: "Erro ao carregar dados",
+          description: error.message,
+          variant: "destructive",
+          duration: 2000,
+        });
+      } finally {
+        setLoadingData(false);
+      }
+    }
+
+    fetchFinancialData();
+  }, [user, selectedPeriod]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -132,7 +208,8 @@ export default function Dashboard() {
     }).format(value);
   };
 
-  if (loading) {
+  // Mostra loading se estiver carregando períodos ou dados financeiros
+  if (loadingPeriods || loadingData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -151,22 +228,16 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+          <Select value={selectedPeriod ?? ''} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Selecionar período" />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => {
-                const date = new Date();
-                date.setMonth(date.getMonth() - i);
-                const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                const label = date.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long' });
-                return (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                );
-              })}
+              {periodOptions.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Button size="sm" className="gap-2">
@@ -214,8 +285,7 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${data.balance >= 0 ? 'text-success' : 'text-danger'
-              }`}>
+            <div className={`text-2xl font-bold ${data.balance >= 0 ? 'text-success' : 'text-danger'}`}>
               {formatCurrency(data.balance)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -309,8 +379,7 @@ export default function Dashboard() {
               </div>
               <div className="w-full bg-secondary rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full ${data.balance >= 0 ? 'bg-success' : 'bg-danger'
-                    }`}
+                  className={`h-2 rounded-full ${data.balance >= 0 ? 'bg-success' : 'bg-danger'}`}
                   style={{
                     width: data.totalIncome > 0
                       ? `${Math.min(Math.abs((data.balance / data.totalIncome) * 100), 100)}%`
