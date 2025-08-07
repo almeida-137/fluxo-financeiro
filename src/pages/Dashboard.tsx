@@ -143,9 +143,10 @@ export default function Dashboard() {
         if (pendingIncomeError) throw pendingIncomeError;
 
 
-        const nextMonthDate = new Date(parseInt(year), parseInt(month), 1);
+        const nextMonthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
         nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
         const nextMonth = nextMonthDate.toISOString().slice(0, 10);
+
         // Fetch selected period expenses
         const { data: expenseData, error: expenseError } = await supabase
           .from('transactions')
